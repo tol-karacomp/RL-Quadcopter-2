@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from physics_sim import PhysicsSim
 
 class Task():
@@ -16,7 +17,7 @@ class Task():
         """
         # Simulation
         self.sim = PhysicsSim(init_pose, init_velocities, init_angle_velocities, runtime) 
-        self.action_repeat = 3
+        self.action_repeat = 5 # 3
 
         self.state_size = self.action_repeat * 6
         self.action_low = 0
@@ -27,8 +28,9 @@ class Task():
         self.target_pos = target_pos if target_pos is not None else np.array([0., 0., 10.]) 
 
     def get_reward(self):
+        
         """Uses current pose of sim to return reward."""
-        reward = 1.-.3*(abs(self.sim.pose[:3] - self.target_pos)).sum()
+        reward = np.tanh(np.linalg.norm(self.sim.pose[:3] - self.target_pos[:3]))
         return reward
 
     def step(self, rotor_speeds):
@@ -39,11 +41,14 @@ class Task():
             done = self.sim.next_timestep(rotor_speeds) # update the sim pose and velocities
             reward += self.get_reward() 
             pose_all.append(self.sim.pose)
+#            if done :
+#                reward += 10
         next_state = np.concatenate(pose_all)
         return next_state, reward, done
 
     def reset(self):
         """Reset the sim to start a new episode."""
         self.sim.reset()
-        state = np.concatenate([self.sim.pose] * self.action_repeat) 
+        state = np.concatenate([self.sim.pose] * self.action_repeat)
+        self.num_steps = 0 
         return state
